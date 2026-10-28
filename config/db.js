@@ -43,7 +43,8 @@ const connectDB = async (retries = 5, delay = 3000) => {
     } catch (error) {
       console.error(`❌ MongoDB connection attempt ${attempt}/${retries} failed: ${error.message}`);
       if (attempt === retries) {
-        throw new Error(`Could not connect to MongoDB after ${retries} attempts`);
+        // Keep the driver's final reason visible (DNS, credentials, IP allowlist, etc.).
+        throw new Error(`Could not connect to MongoDB after ${retries} attempts: ${error.message}`, { cause: error });
       }
       await new Promise((res) => setTimeout(res, delay));
     }
