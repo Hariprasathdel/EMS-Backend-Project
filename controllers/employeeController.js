@@ -1,6 +1,5 @@
 const Employee = require('../models/Employee');
 const User = require('../models/User');
-const bcrypt = require('bcryptjs');
 
 // @desc    Get all employees
 exports.getEmployees = async (req, res) => {
@@ -55,13 +54,10 @@ exports.createEmployee = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User with this email already exists' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password || 'Welcome@123', salt);
-
     const user = await User.create({
       name: `${firstName} ${lastName}`,
       email,
-      password: hashedPassword,
+      password: password || 'Welcome@123',
       role: rest.role || 'employee',
     });
 
