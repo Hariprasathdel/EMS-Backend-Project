@@ -46,8 +46,19 @@ exports.register = async (req, res) => {
 // @route   POST /api/auth/login
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const normalizedEmail = String(email || '').trim().toLowerCase();
+    // Accept the common identifier field names used by the login clients.
+    // Email remains the canonical field; username support keeps older clients
+    // and accounts working without weakening password verification.
+    const { email, username, identifier, password } = req.body || {};
+    const loginIdentifier = String(email || username || identifier || '').trim();
+    const normalizedEmail = loginIdentifier.toLowerCase();
+    if (!loginIdentifier || typeof password !== 'string' || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required',
+      });
+    }
+
     // Older installations may have stored the email in `username`.
     const user = await User.findOne({
       $or: [{ email: normalizedEmail }, { username: normalizedEmail }],
@@ -56,7 +67,9 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    // Passwords are stored as bcrypt hashes by the User model. Never compare
+    // against, or accept, a plaintext password from the database.
+    const isMatch = await bcrypt.compare(password, user.password || '');
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
